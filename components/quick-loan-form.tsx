@@ -16,7 +16,7 @@ export default function QuickLoanForm() {
     nome: "",
     telefone: "",
     documento: "",
-    valorEmprestimo: "5000",
+    valorEmprestimo: "",
     temRestricoes: false,
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -42,7 +42,8 @@ export default function QuickLoanForm() {
 
   const formatCurrency = (value: string) => {
     const numbers = value.replace(/\D/g, "")
-    const amount = Number.parseInt(numbers) || 0
+    if (!numbers) return ""
+    const amount = Number.parseInt(numbers)
     return new Intl.NumberFormat("pt-BR", {
       style: "currency",
       currency: "BRL",
@@ -53,6 +54,15 @@ export default function QuickLoanForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    const valorNumerico = formData.valorEmprestimo.replace(/\D/g, "")
+    const valor = Number.parseInt(valorNumerico) || 5000
+
+    if (valor < 5000) {
+      toast.error("O valor mínimo é R$ 5.000")
+      return
+    }
+
     setIsSubmitting(true)
 
     try {
@@ -61,7 +71,10 @@ export default function QuickLoanForm() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          valorEmprestimo: valor.toString(),
+        }),
       })
 
       if (response.ok) {
@@ -70,7 +83,7 @@ export default function QuickLoanForm() {
           nome: "",
           telefone: "",
           documento: "",
-          valorEmprestimo: "5000",
+          valorEmprestimo: "",
           temRestricoes: false,
         })
       } else {
@@ -126,35 +139,37 @@ export default function QuickLoanForm() {
         </div>
 
         <div>
-          <Label htmlFor="valor">Valor do Empréstimo (mínimo R$ 5.000)</Label>
+          <Label htmlFor="valor">Valor do Empréstimo</Label>
           <Input
             id="valor"
             type="text"
-            value={formatCurrency(formData.valorEmprestimo)}
+            value={formData.valorEmprestimo}
             onChange={(e) => {
-              const numbers = e.target.value.replace(/\D/g, "")
-              const amount = Math.max(5000, Number.parseInt(numbers) || 5000)
-              setFormData({ ...formData, valorEmprestimo: amount.toString() })
+              const formatted = formatCurrency(e.target.value)
+              setFormData({ ...formData, valorEmprestimo: formatted })
             }}
-            placeholder="R$ 5.000"
+            placeholder="R$ 5.000 (mínimo)"
             required
-            className="mt-1"
+            className="mt-1 text-lg font-medium"
           />
-          <p className="text-xs text-muted-foreground mt-1">Valor mínimo: R$ 5.000 | Valor máximo: R$ 125.000</p>
+          <div className="flex justify-between items-center mt-2">
+            <p className="text-xs text-muted-foreground">Mínimo: R$ 5.000</p>
+            <p className="text-xs text-muted-foreground">Máximo: R$ 125.000</p>
+          </div>
         </div>
 
         <div>
           <Label className="text-sm font-medium">Situação do CPF/CNPJ</Label>
-          <div className="flex gap-3 mt-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
             <Card
-              className={`p-4 cursor-pointer transition-all border-2 flex-1 ${
+              className={`p-4 cursor-pointer transition-all border-2 ${
                 !formData.temRestricoes ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
               }`}
               onClick={() => setFormData({ ...formData, temRestricoes: false })}
             >
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-3">
                 <CheckCircle
-                  className={`w-5 h-5 ${!formData.temRestricoes ? "text-primary" : "text-muted-foreground"}`}
+                  className={`w-5 h-5 flex-shrink-0 ${!formData.temRestricoes ? "text-primary" : "text-muted-foreground"}`}
                 />
                 <div>
                   <div className="font-medium text-sm">Sem Restrições</div>
@@ -164,14 +179,14 @@ export default function QuickLoanForm() {
             </Card>
 
             <Card
-              className={`p-4 cursor-pointer transition-all border-2 flex-1 ${
+              className={`p-4 cursor-pointer transition-all border-2 ${
                 formData.temRestricoes ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
               }`}
               onClick={() => setFormData({ ...formData, temRestricoes: true })}
             >
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-3">
                 <AlertCircle
-                  className={`w-5 h-5 ${formData.temRestricoes ? "text-primary" : "text-muted-foreground"}`}
+                  className={`w-5 h-5 flex-shrink-0 ${formData.temRestricoes ? "text-primary" : "text-muted-foreground"}`}
                 />
                 <div>
                   <div className="font-medium text-sm">Com Restrições</div>
